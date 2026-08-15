@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
+
+  <meta name="theme-color" content="#111111">
+
+  <title>Checklist de Obra</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #111111;
+      color: #ffffff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tela {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .tela.ativa {
+      display: flex;
+    }
+
+    /* =========================
+       TELA INICIAL
+       ========================= */
+
+    #tela-inicial {
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 30px 22px;
+    }
+
+    .topo {
+      text-align: center;
+      padding-top: 20px;
+    }
+
+    .icone-app {
+      font-size: 58px;
+      margin-bottom: 12px;
+    }
+
+    .titulo-app {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .subtitulo-app {
+      color: #999999;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+
+    .servico-card {
+      background: #1b1b1b;
+      border: 1px solid #303030;
+      border-radius: 22px;
+      padding: 24px 20px;
+      margin: 35px 0;
+    }
+
+    .servico-label {
+      color: #888888;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .servico-nome {
+      font-size: 25px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .servico-descricao {
+      color: #bbbbbb;
+      font-size: 15px;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    .quantidade-itens {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid #303030;
+      font-size: 16px;
+    }
+
+    .quantidade-itens strong {
+      font-size: 23px;
+    }
+
+    .botao-iniciar {
+      width: 100%;
+      min-height: 76px;
+      border-radius: 20px;
+      background: #f2f2f2;
+      color: #111111;
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .botao-iniciar:active {
+      transform: scale(0.98);
+    }
+
+    /* =========================
+       TELA CHECKLIST
+       ========================= */
+
+    #tela-checklist {
+      flex-direction: column;
+      padding: 18px;
+    }
+
+    .check-topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .check-titulo {
+      font-size: 14px;
+      color: #999999;
+    }
+
+    .contador {
+      font-size: 16px;
+      font-weight: 800;
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 9px 13px;
+    }
+
+    .barra-container {
+      width: 100%;
+      height: 7px;
+      background: #292929;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 25px;
+    }
+
+    .barra {
+      height: 100%;
+      width: 0%;
+      background: #ffffff;
+      transition: width 0.25s ease;
+    }
+
+    .item-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 0 20px;
+    }
+
+    .tipo-item {
+      color: #999999;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+    }
+
+    .imagem-item {
+      width: min(78vw, 360px);
+      height: min(55vh, 360px);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background: #1b1b1b;
+      border: 1px solid #303030;
+      border-radius: 28px;
+
+      font-size: min(32vw, 150px);
+
+      margin-bottom: 25px;
+    }
+
+    .nome-item {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .instrucao-item {
+      color: #aaaaaa;
+      font-size: 16px;
+      line-height: 1.4;
+      margin-top: 12px;
+      max-width: 350px;
+    }
+
+    .botao-pegar {
+      width: 100%;
+      min-height: 86px;
+      border-radius: 22px;
+      background: #ffffff;
+      color: #111111;
+      font-size: 23px;
+      font-weight: 900;
+      margin-top: 10px;
+    }
+
+    .botao-pegar:active {
+      transform: scale(0.98);
+    }
+
+    /* =========================
+       TELA FINAL
+       ========================= */
+
+    #tela-final {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .final-icone {
+      font-size: 90px;
+      margin-bottom: 25px;
+    }
+
+    .final-titulo {
+      font-size: 34px;
+      font-weight: 900;
+    }
+
+    .final-texto {
+      color: #aaaaaa;
+      font-size: 17px;
+      line-height: 1.5;
+      margin-top: 15px;
+      max-width: 360px;
+    }
+
+    .final-contador {
+      margin-top: 25px;
+      background: #1b1b1b;
+      border: 1px solid #303030;
+      padding: 18px 25px;
+      border-radius: 18px;
+      font-size: 18px;
+    }
+
+    .botao-novo {
+      width: 100%;
+      max-width: 380px;
+      min-height: 70px;
+      margin-top: 35px;
+      border-radius: 18px;
+      background: #ffffff;
+      color: #111111;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       TELA INICIAL
+       ========================= -->
+
+  <section id="tela-inicial" class="tela ativa">
+
+    <div class="topo">
+
+      <div class="icone-app">🔧</div>
+
+      <div class="titulo-app">
+        Checklist de Obra
+      </div>
+
+      <div class="subtitulo-app">
+        Confira tudo antes de sair
+      </div>
+
+    </div>
+
+    <div class="servico-card">
+
+      <div class="servico-label">
+        Serviço de amanhã
+      </div>
+
+      <div class="servico-nome">
+        Casa do João
+      </div>
+
+      <div class="servico-descricao">
+        Instalação elétrica
+      </div>
+
+      <div class="quantidade-itens">
+        <strong id="quantidade-inicial">8</strong>
+        itens para levar
+      </div>
+
+    </div>
+
+    <button
+      class="botao-iniciar"
+      onclick="iniciarChecklist()"
+    >
+      INICIAR CHECKLIST
+    </button>
+
+  </section>
+
+
+  <!-- =========================
+       TELA CHECKLIST
+       ========================= -->
+
+  <section id="tela-checklist" class="tela">
+
+    <div class="check-topo">
+
+      <div class="check-titulo">
+        Separando para a obra
+      </div>
+
+      <div class="contador">
+        <span id="numero-atual">1</span>/<span id="numero-total">8</span>
+      </div>
+
+    </div>
+
+    <div class="barra-container">
+
+      <div
+        id="barra"
+        class="barra"
+      ></div>
+
+    </div>
+
+
+    <div class="item-area">
+
+      <div
+        id="tipo-item"
+        class="tipo-item"
+      >
+        FERRAMENTA
+      </div>
+
+      <div
+        id="imagem-item"
+        class="imagem-item"
+      >
+        🔧
+      </div>
+
+      <div
+        id="nome-item"
+        class="nome-item"
+      >
+        Multímetro
+      </div>
+
+      <div
+        id="instrucao-item"
+        class="instrucao-item"
+      >
+        Pegue o multímetro e coloque no carro.
+      </div>
+
+    </div>
+
+
+    <button
+      id="botao-pegar"
+      class="botao-pegar"
+      onclick="pegarItem()"
+    >
+      ✅ PEGUEI
+    </button>
+
+  </section>
+
+
+  <!-- =========================
+       TELA FINAL
+       ========================= -->
+
+  <section id="tela-final" class="tela">
+
+    <div class="final-icone">
+      🎉
+    </div>
+
+    <div class="final-titulo">
+      Tudo pronto!
+    </div>
+
+    <div class="final-texto">
+      Todos os itens foram separados
+      e colocados no carro.
+    </div>
+
+    <div class="final-contador">
+      <strong id="final-total">8</strong>
+      de
+      <strong id="final-total-2">8</strong>
+      itens separados
+    </div>
+
+    <button
+      class="botao-novo"
+      onclick="voltarInicio()"
+    >
+      VOLTAR AO INÍCIO
+    </button>
+
+  </section>
+
+
+  <script>
+
+    /*
+     * =====================================
+     * DADOS TEMPORÁRIOS DO SERVIÇO
+     * =====================================
+     *
+     * Depois vamos substituir isso
+     * pelo Google Sheets.
+     */
+
+    const servico = {
+
+      cliente: "Casa do João",
+
+      descricao: "Instalação elétrica",
+
+      itens: [
+
+        {
+          nome: "Multímetro",
+          tipo: "Ferramenta",
+          imagem: "🔧"
+        },
+
+        {
+          nome: "Alicate amperímetro",
+          tipo: "Ferramenta",
+          imagem: "🔌"
+        },
+
+        {
+          nome: "Alicate universal",
+          tipo: "Ferramenta",
+          imagem: "🔧"
+        },
+
+        {
+          nome: "Furadeira",
+          tipo: "Ferramenta",
+          imagem: "🔨"
+        },
+
+        {
+          nome: "Parafusadeira",
+          tipo: "Ferramenta",
+          imagem: "🔩"
+        },
+
+        {
+          nome: "Cabo 6 mm²",
+          tipo: "Material",
+          imagem: "🧵"
+        },
+
+        {
+          nome: "Disjuntor 32 A",
+          tipo: "Material",
+          imagem: "⚡"
+        },
+
+        {
+          nome: "Fita isolante",
+          tipo: "Material",
+          imagem: "📦"
+        }
+
+      ]
+
+    };
+
+
+    /*
+     * =====================================
+     * CONTROLE DO CHECKLIST
+     * =====================================
+     */
+
+    let indiceAtual = 0;
+
+
+    /*
+     * Recupera o progresso salvo
+     */
+
+    function carregarProgresso() {
+
+      const salvo = localStorage.getItem(
+        "checklistProgresso"
+      );
+
+      if (salvo !== null) {
+
+        indiceAtual = Number(salvo);
+
+      }
+
+    }
+
+
+    /*
+     * Salva o progresso
+     */
+
+    function salvarProgresso() {
+
+      localStorage.setItem(
+        "checklistProgresso",
+        indiceAtual
+      );
+
+    }
+
+
+    /*
+     * Troca de tela
+     */
+
+    function mostrarTela(id) {
+
+      document
+        .querySelectorAll(".tela")
+        .forEach(function(tela) {
+
+          tela.classList.remove("ativa");
+
+        });
+
+      document
+        .getElementById(id)
+        .classList.add("ativa");
+
+    }
+
+
+    /*
+     * Inicia o checklist
+     */
+
+    function iniciarChecklist() {
+
+      carregarProgresso();
+
+      if (
+        indiceAtual >= servico.itens.length
+      ) {
+
+        indiceAtual = 0;
+
+        salvarProgresso();
+
+      }
+
+      atualizarItem();
+
+      mostrarTela("tela-checklist");
+
+    }
+
+
+    /*
+     * Atualiza a tela do item
+     */
+
+    function atualizarItem() {
+
+      const item =
+        servico.itens[indiceAtual];
+
+      document
+        .getElementById("numero-atual")
+        .textContent =
+        indiceAtual + 1;
+
+      document
+        .getElementById("numero-total")
+        .textContent =
+        servico.itens.length;
+
+      document
+        .getElementById("tipo-item")
+        .textContent =
+        item.tipo;
+
+      document
+        .getElementById("imagem-item")
+        .textContent =
+        item.imagem;
+
+      document
+        .getElementById("nome-item")
+        .textContent =
+        item.nome;
+
+      document
+        .getElementById("instrucao-item")
+        .textContent =
+        "Pegue " +
+        item.nome.toLowerCase() +
+        " e coloque no carro.";
+
+      const progresso =
+        (indiceAtual /
+        servico.itens.length) *
+        100;
+
+      document
+        .getElementById("barra")
+        .style.width =
+        progresso + "%";
+
+    }
+
+
+    /*
+     * Marca item como pego
+     */
+
+    function pegarItem() {
+
+      indiceAtual++;
+
+      salvarProgresso();
+
+      if (
+        indiceAtual >=
+        servico.itens.length
+      ) {
+
+        mostrarTelaFinal();
+
+        return;
+
+      }
+
+      atualizarItem();
+
+    }
+
+
+    /*
+     * Tela final
+     */
+
+    function mostrarTelaFinal() {
+
+      document
+        .getElementById("final-total")
+        .textContent =
+        servico.itens.length;
+
+      document
+        .getElementById("final-total-2")
+        .textContent =
+        servico.itens.length;
+
+      mostrarTela("tela-final");
+
+      localStorage.removeItem(
+        "checklistProgresso"
+      );
+
+    }
+
+
+    /*
+     * Volta para o início
+     */
+
+    function voltarInicio() {
+
+      indiceAtual = 0;
+
+      localStorage.removeItem(
+        "checklistProgresso"
+      );
+
+      mostrarTela("tela-inicial");
+
+    }
+
+
+    /*
+     * Inicialização
+     */
+
+    document
+      .getElementById("quantidade-inicial")
+      .textContent =
+      servico.itens.length;
+
+
+    carregarProgresso();
+
+  </script>
+
+</body>
+
+</html>
