@@ -546,7 +546,44 @@ async function testarAPI() {
      */
 
     let indiceAtual = 0;
+async function carregarServicoDaAPI() {
 
+  try {
+
+    const resposta = await fetch(API_URL);
+
+    const servicos = await resposta.json();
+
+    if (!servicos.length) {
+      console.error("Nenhum serviço encontrado.");
+      return;
+    }
+
+    const servicoAPI = servicos[0];
+
+    servico.cliente = servicoAPI.cliente;
+    servico.descricao = servicoAPI.descricao;
+
+    document
+      .querySelector(".servico-nome")
+      .textContent = servico.cliente;
+
+    document
+      .querySelector(".servico-descricao")
+      .textContent = servico.descricao;
+
+    console.log("Serviço carregado:", servicoAPI);
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao carregar serviço:",
+      erro
+    );
+
+  }
+
+}
 
     /*
      * Recupera o progresso salvo
