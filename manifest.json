@@ -3,7 +3,6 @@
   "short_name": "Checklist",
   "description": "Checklist de ferramentas e materiais para levar à obra.",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
   "background_color": "#111111",
   "theme_color": "#111111",
