@@ -479,64 +479,10 @@ async function testarAPI() {
   }
 }
     const servico = {
-
-      cliente: "Casa do João",
-
-      descricao: "Instalação elétrica",
-
-      itens: [
-
-        {
-          nome: "Multímetro",
-          tipo: "Ferramenta",
-          imagem: "🔧"
-        },
-
-        {
-          nome: "Alicate amperímetro",
-          tipo: "Ferramenta",
-          imagem: "🔌"
-        },
-
-        {
-          nome: "Alicate universal",
-          tipo: "Ferramenta",
-          imagem: "🔧"
-        },
-
-        {
-          nome: "Furadeira",
-          tipo: "Ferramenta",
-          imagem: "🔨"
-        },
-
-        {
-          nome: "Parafusadeira",
-          tipo: "Ferramenta",
-          imagem: "🔩"
-        },
-
-        {
-          nome: "Cabo 6 mm²",
-          tipo: "Material",
-          imagem: "🧵"
-        },
-
-        {
-          nome: "Disjuntor 32 A",
-          tipo: "Material",
-          imagem: "⚡"
-        },
-
-        {
-          nome: "Fita isolante",
-          tipo: "Material",
-          imagem: "📦"
-        }
-
-      ]
-
-    };
+  cliente: "",
+  descricao: "",
+  itens: []
+};
 
 
     /*
@@ -552,17 +498,96 @@ async function carregarServicoDaAPI() {
 
     const resposta = await fetch(API_URL);
 
-    const servicos = await resposta.json();
+    const dados = await resposta.json();
 
-    if (!servicos.length) {
+    if (!dados.servicos || !dados.servicos.length) {
       console.error("Nenhum serviço encontrado.");
       return;
     }
 
-    const servicoAPI = servicos[0];
+    const servicoAPI = dados.servicos[0];
 
     servico.cliente = servicoAPI.cliente;
     servico.descricao = servicoAPI.descricao;
+
+
+    // =========================
+    // ENCONTRAR OS ITENS DO SERVIÇO
+    // =========================
+
+    const itensDoServico = dados.itensServico
+      .filter(function(item) {
+
+        return item.servico_id === servicoAPI.id;
+
+      })
+      .sort(function(a, b) {
+
+        return Number(a.ordem) - Number(b.ordem);
+
+      });
+
+
+    // =========================
+    // MONTAR O CHECKLIST
+    // =========================
+
+    servico.itens = itensDoServico.map(function(itemServico) {
+
+      let itemEncontrado = null;
+
+
+      if (itemServico.tipo === "ferramenta") {
+
+        itemEncontrado = dados.ferramentas.find(function(ferramenta) {
+
+          return ferramenta.id === itemServico.item_id;
+
+        });
+
+      }
+
+
+      if (itemServico.tipo === "material") {
+
+        itemEncontrado = dados.materiais.find(function(material) {
+
+          return material.id === itemServico.item_id;
+
+        });
+
+      }
+
+
+      if (!itemEncontrado) {
+        return null;
+      }
+
+
+      return {
+
+        nome: itemEncontrado.nome,
+
+        tipo:
+          itemServico.tipo === "ferramenta"
+            ? "Ferramenta"
+            : "Material",
+
+        imagem:
+          itemEncontrado.imagem || "📦"
+
+      };
+
+    }).filter(function(item) {
+
+      return item !== null;
+
+    });
+
+
+    // =========================
+    // ATUALIZAR TELA INICIAL
+    // =========================
 
     document
       .querySelector(".servico-nome")
@@ -572,7 +597,16 @@ async function carregarServicoDaAPI() {
       .querySelector(".servico-descricao")
       .textContent = servico.descricao;
 
-    console.log("Serviço carregado:", servicoAPI);
+    document
+      .getElementById("quantidade-inicial")
+      .textContent = servico.itens.length;
+
+
+    console.log(
+      "Serviço carregado:",
+      servico
+    );
+
 
   } catch (erro) {
 
@@ -790,12 +824,7 @@ async function carregarServicoDaAPI() {
      * Inicialização
      */
 
-    document
-      .getElementById("quantidade-inicial")
-      .textContent =
-      servico.itens.length;
-
-
+   
     carregarProgresso();
     testarAPI();
 
