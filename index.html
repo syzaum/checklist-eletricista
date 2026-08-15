@@ -465,7 +465,19 @@
      * Depois vamos substituir isso
      * pelo Google Sheets.
      */
+const API_URL = "https://script.google.com/macros/s/AKfycbzLBkyuSK8ILxNvPSfMJ-mvb5451Ef6iXPlEWQNsoQ55Jfq12EJtN9CmRv1bUQDtWn2/exec";
 
+async function testarAPI() {
+  try {
+    const resposta = await fetch(API_URL);
+    const dados = await resposta.json();
+
+    console.log("API respondeu:", dados);
+
+  } catch (erro) {
+    console.error("Erro ao acessar API:", erro);
+  }
+}
     const servico = {
 
       cliente: "Casa do João",
@@ -748,6 +760,7 @@
 
 
     carregarProgresso();
+    testarAPI();
 
   </script>
   <script>
