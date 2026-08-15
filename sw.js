@@ -1,4 +1,4 @@
-const CACHE_NAME = "checklist-eletricista-v2";
+const CACHE_NAME = "checklist-eletricista-v3";
 
 const ARQUIVOS = [
   "./",
