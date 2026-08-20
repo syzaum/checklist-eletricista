@@ -219,7 +219,7 @@
 <div class="container">
 
   <h1>Gerenciador de Serviços</h1>
-  <p class="sub">Monte os checklists pelo PC. Esta versão é apenas para teste e não grava no Google Sheets.</p>
+  <p class="sub">Monte os checklists pelo PC. Monte o checklist pelo PC e salve o serviço diretamente no Google Sheets.</p>
 
   <div class="card">
     <div class="grid-form">
@@ -280,7 +280,7 @@
 
       <div class="toolbar" style="margin-top:14px">
         <button class="btn-secondary" onclick="limparSelecao()">LIMPAR ITENS</button>
-        <button class="btn-primary" onclick="gerarEstrutura()">GERAR ESTRUTURA</button>
+        <button class="btn-primary" onclick="salvarServico()">SALVAR SERVIÇO</button>
       </div>
     </div>
 
@@ -456,11 +456,12 @@ function limparSelecao() {
     "Clique em GERAR ESTRUTURA.";
 }
 
-function gerarEstrutura() {
+async function salvarServico() {
   const id = document.getElementById("servico-id").value.trim();
   const cliente = document.getElementById("cliente").value.trim();
   const descricao = document.getElementById("descricao").value.trim();
   const data = document.getElementById("data").value;
+  const resultado = document.getElementById("resultado");
 
   if (!cliente || !descricao || !data) {
     alert("Preencha Cliente, Descrição e Data.");
@@ -472,26 +473,76 @@ function gerarEstrutura() {
     return;
   }
 
-  const servico = [
-    "id | cliente | descricao | data | status",
-    `${id} | ${cliente} | ${descricao} | ${formatarData(data)} | programado`
-  ].join("\n");
+  const payload = {
+    servico: {
+      id: id,
+      cliente: cliente,
+      descricao: descricao,
+      data: formatarData(data),
+      status: "programado"
+    },
+    itens: selecionados.map((item, index) => ({
+      servico_id: id,
+      tipo: item.tipo,
+      item_id: item.id,
+      ordem: index + 1
+    }))
+  };
 
-  const itens = [
-    "servico_id | tipo | item_id | ordem",
-    ...selecionados.map((item, index) =>
-      `${id} | ${item.tipo} | ${item.id} | ${index + 1}`
-    )
-  ].join("\n");
+  resultado.textContent = "Salvando serviço...";
 
-  document.getElementById("resultado").textContent =
-`SERVICOS
+  try {
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload)
+    });
 
-${servico}
+    const texto = await resposta.text();
 
-ITENS_SERVICO
+    let retorno;
 
-${itens}`;
+    try {
+      retorno = JSON.parse(texto);
+    } catch (e) {
+      throw new Error("A API não retornou um JSON válido.");
+    }
+
+    if (!retorno.sucesso) {
+      throw new Error(retorno.erro || "Não foi possível salvar o serviço.");
+    }
+
+    resultado.textContent =
+`✅ SERVIÇO SALVO COM SUCESSO
+
+ID: ${retorno.id}
+
+Cliente: ${cliente}
+Descrição: ${descricao}
+Data: ${formatarData(data)}
+
+Itens: ${selecionados.length}
+
+O serviço foi enviado para o Google Sheets.`;
+
+    alert("Serviço salvo com sucesso!");
+
+    // Prepara o próximo ID sem apagar os dados atuais da tela.
+    const numeroAtual = Number(id.replace(/\D/g, "")) || 0;
+    document.getElementById("servico-id").value =
+      "S" + String(numeroAtual + 1).padStart(3, "0");
+
+  } catch (erro) {
+    resultado.textContent =
+`❌ ERRO AO SALVAR
+
+${erro.message}
+
+Nenhum resultado de sucesso foi confirmado.`;
+    alert("Erro ao salvar: " + erro.message);
+  }
 }
 
 function formatarData(data) {
