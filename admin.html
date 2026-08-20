@@ -81,6 +81,10 @@
     .btn-primary { background: #fff; color: #111; }
     .btn-secondary { background: #292929; color: #fff; }
     .btn-danger { background: #4a2020; color: #fff; }
+.btn-success { background: #1f4a2b; color: #fff; }
+.status-programado { color: #d6b45a; }
+.status-andamento { color: #6ea8ff; }
+.status-concluido { color: #72c48b; }
 
     .layout {
       display: grid;
@@ -309,7 +313,7 @@
       <span class="contador">somente visualização</span>
     </div>
 
-    <div id="resultado" class="resultado">Pronto para criar ou editar um serviço.</div>
+    <div id="resultado" class="resultado">Pronto para criar, editar ou acompanhar um serviço.</div>
   </div>
 
 </div>
@@ -412,11 +416,28 @@ function renderServicos() {
         <div class="item-main">
           <div class="item-name">${escapeHTML(servico.id)} · ${escapeHTML(servico.cliente)}</div>
           <div class="item-meta">
-            ${escapeHTML(servico.descricao)} · ${escapeHTML(servico.data)} · ${quantidade} itens · ${escapeHTML(servico.status)}
+            ${escapeHTML(servico.descricao)} · ${escapeHTML(servico.data)} · ${quantidade} itens ·
+            <span class="${
+              String(servico.status).toLowerCase() === "concluído"
+                ? "status-concluido"
+                : String(servico.status).toLowerCase() === "em andamento"
+                  ? "status-andamento"
+                  : "status-programado"
+            }">${escapeHTML(servico.status)}</span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <button class="btn-secondary" onclick="editarServico('${String(servico.id).replace(/'/g, "\\'")}')">EDITAR</button>
+          ${
+            String(servico.status).toLowerCase() === "programado"
+              ? `<button class="btn-success" onclick="alterarStatusServico('${String(servico.id).replace(/'/g, "\\'")}', 'iniciar')">INICIAR</button>`
+              : ""
+          }
+          ${
+            String(servico.status).toLowerCase() === "em andamento"
+              ? `<button class="btn-success" onclick="alterarStatusServico('${String(servico.id).replace(/'/g, "\\'")}', 'finalizar')">FINALIZAR</button>`
+              : ""
+          }
           <button class="btn-danger" onclick="excluirServico('${String(servico.id).replace(/'/g, "\\'")}')">EXCLUIR</button>
         </div>
       </div>
@@ -424,6 +445,74 @@ function renderServicos() {
   }).join("");
 }
 
+
+
+async function alterarStatusServico(id, acao) {
+
+  const servico = (dados.servicos || []).find(item =>
+    String(item.id).toLowerCase() === String(id).toLowerCase()
+  );
+
+  if (!servico) {
+    alert("Serviço não encontrado.");
+    return;
+  }
+
+  const finalizando = acao === "finalizar";
+
+  const mensagem = finalizando
+    ? `Finalizar ${servico.id} — ${servico.cliente}?\n\nDepois disso ele ficará como CONCLUÍDO e não deverá mais aparecer para seu pai.`
+    : `Iniciar ${servico.id} — ${servico.cliente}?`;
+
+  if (!confirm(mensagem)) return;
+
+  const resultado = document.getElementById("resultado");
+  resultado.textContent =
+    finalizando ? "Finalizando serviço..." : "Iniciando serviço...";
+
+  try {
+
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        acao: acao,
+        servico_id: servico.id
+      })
+    });
+
+    const retorno = await resposta.json();
+
+    if (!retorno.sucesso) {
+      throw new Error(
+        retorno.erro || "Não foi possível alterar o status."
+      );
+    }
+
+    alert(
+      finalizando
+        ? "Serviço finalizado com sucesso."
+        : "Serviço iniciado com sucesso."
+    );
+
+    await carregarAPI();
+
+    resultado.textContent =
+      finalizando
+        ? `✅ ${servico.id} foi finalizado.`
+        : `🔵 ${servico.id} está em andamento.`;
+
+  } catch (erro) {
+
+    resultado.textContent =
+      "❌ Erro ao alterar status\n\n" + erro.message;
+
+    alert("Erro: " + erro.message);
+
+  }
+}
 
 async function excluirServico(id) {
   const servico = (dados.servicos || []).find(item =>
