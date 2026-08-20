@@ -282,6 +282,23 @@
       transform: scale(0.98);
     }
 
+
+    .botao-voltar-item {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 10px;
+      border-radius: 16px;
+      background: transparent;
+      color: #999999;
+      border: 1px solid #303030;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .botao-voltar-item:active {
+      transform: scale(0.98);
+    }
+
     /* =========================
        TELA FINAL
        ========================= */
@@ -461,6 +478,15 @@
       onclick="pegarItem()"
     >
       ✅ PEGUEI
+    </button>
+
+
+    <button
+      id="botao-voltar-item"
+      class="botao-voltar-item"
+      onclick="voltarItem()"
+    >
+      ← VOLTAR UM ITEM
     </button>
 
   </section>
@@ -859,6 +885,19 @@ caixaImagem.appendChild(img);
     /*
      * Marca item como pego
      */
+
+    function voltarItem() {
+
+      if (indiceAtual <= 0) {
+        return;
+      }
+
+      indiceAtual--;
+
+      atualizarItem();
+
+    }
+
 
     function pegarItem() {
 
