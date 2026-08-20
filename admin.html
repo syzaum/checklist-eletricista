@@ -245,6 +245,23 @@
     </div>
   </div>
 
+
+  <div class="card">
+    <div class="section-title">
+      <h2>Serviços cadastrados</h2>
+      <span class="contador" id="contador-servicos">Carregando...</span>
+    </div>
+
+    <div class="toolbar">
+      <input id="busca-servico" type="search" placeholder="Pesquisar cliente, descrição ou ID...">
+      <button class="btn-secondary" onclick="novoServico()">NOVO SERVIÇO</button>
+    </div>
+
+    <div id="lista-servicos" class="lista">
+      <div class="vazio">Carregando serviços...</div>
+    </div>
+  </div>
+
   <div class="layout">
 
     <div class="card">
@@ -288,11 +305,11 @@
 
   <div class="card">
     <div class="section-title">
-      <h2>Estrutura gerada</h2>
+      <h2>Status</h2>
       <span class="contador">somente visualização</span>
     </div>
 
-    <div id="resultado" class="resultado">Clique em GERAR ESTRUTURA.</div>
+    <div id="resultado" class="resultado">Pronto para criar ou editar um serviço.</div>
   </div>
 
 </div>
@@ -309,6 +326,7 @@ let dados = {
 
 let catalogo = [];
 let selecionados = [];
+let servicoEditando = null;
 
 function proximoId() {
   let maior = 0;
@@ -347,6 +365,7 @@ async function carregarAPI() {
     document.getElementById("servico-id").value = proximoId();
     status.textContent = catalogo.length + " itens";
 
+    renderServicos();
     renderCatalogo();
 
   } catch (erro) {
@@ -355,6 +374,178 @@ async function carregarAPI() {
       '<div class="vazio">Não foi possível carregar a API.<br>' +
       erro.message + '</div>';
   }
+}
+
+
+function renderServicos() {
+  const lista = document.getElementById("lista-servicos");
+  const contador = document.getElementById("contador-servicos");
+  const busca = document.getElementById("busca-servico").value.trim().toLowerCase();
+
+  const servicosFiltrados = (dados.servicos || []).filter(servico => {
+    const texto = [
+      servico.id,
+      servico.cliente,
+      servico.descricao,
+      servico.status
+    ].join(" ").toLowerCase();
+
+    return !busca || texto.includes(busca);
+  });
+
+  contador.textContent =
+    (dados.servicos || []).length +
+    ((dados.servicos || []).length === 1 ? " serviço" : " serviços");
+
+  if (!servicosFiltrados.length) {
+    lista.innerHTML = '<div class="vazio">Nenhum serviço encontrado.</div>';
+    return;
+  }
+
+  lista.innerHTML = servicosFiltrados.map(servico => {
+    const quantidade = (dados.itensServico || []).filter(item =>
+      String(item.servico_id).toLowerCase() === String(servico.id).toLowerCase()
+    ).length;
+
+    return `
+      <div class="item">
+        <div class="item-main">
+          <div class="item-name">${escapeHTML(servico.id)} · ${escapeHTML(servico.cliente)}</div>
+          <div class="item-meta">
+            ${escapeHTML(servico.descricao)} · ${escapeHTML(servico.data)} · ${quantidade} itens · ${escapeHTML(servico.status)}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="editarServico('${String(servico.id).replace(/'/g, "\\'")}')">EDITAR</button>
+          <button class="btn-danger" onclick="excluirServico('${String(servico.id).replace(/'/g, "\\'")}')">EXCLUIR</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+
+async function excluirServico(id) {
+  const servico = (dados.servicos || []).find(item =>
+    String(item.id).toLowerCase() === String(id).toLowerCase()
+  );
+
+  if (!servico) {
+    alert("Serviço não encontrado.");
+    return;
+  }
+
+  const confirmar = confirm(
+    `Excluir ${servico.id} — ${servico.cliente}?\n\n` +
+    "Isso também removerá todos os itens desse serviço."
+  );
+
+  if (!confirmar) return;
+
+  const resultado = document.getElementById("resultado");
+  resultado.textContent = "Excluindo serviço...";
+
+  try {
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        acao: "excluir",
+        servico_id: servico.id
+      })
+    });
+
+    const retorno = await resposta.json();
+
+    if (!retorno.sucesso) {
+      throw new Error(retorno.erro || "Não foi possível excluir o serviço.");
+    }
+
+    alert("Serviço excluído com sucesso.");
+
+    if (servicoEditando && servicoEditando.id === servico.id) {
+      servicoEditando = null;
+      selecionados = [];
+    }
+
+    await carregarAPI();
+    novoServico();
+
+    resultado.textContent = "Serviço excluído.";
+
+  } catch (erro) {
+    resultado.textContent = "❌ Erro ao excluir\n\n" + erro.message;
+    alert("Erro ao excluir: " + erro.message);
+  }
+}
+
+function novoServico() {
+  servicoEditando = null;
+  selecionados = [];
+
+  document.getElementById("servico-id").value = proximoId();
+  document.getElementById("cliente").value = "";
+  document.getElementById("descricao").value = "";
+  document.getElementById("data").value = "";
+
+  renderCatalogo();
+  renderSelecionados();
+
+  document.getElementById("resultado").textContent =
+    "Novo serviço. Selecione os itens e salve.";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function editarServico(id) {
+  const servico = (dados.servicos || []).find(item =>
+    String(item.id).toLowerCase() === String(id).toLowerCase()
+  );
+
+  if (!servico) {
+    alert("Serviço não encontrado.");
+    return;
+  }
+
+  servicoEditando = servico;
+  document.getElementById("servico-id").value = servico.id || "";
+  document.getElementById("cliente").value = servico.cliente || "";
+  document.getElementById("descricao").value = servico.descricao || "";
+  document.getElementById("data").value = converterParaInputDate(servico.data);
+
+  const itens = (dados.itensServico || [])
+    .filter(item =>
+      String(item.servico_id).toLowerCase() === String(servico.id).toLowerCase()
+    )
+    .sort((a, b) => Number(a.ordem) - Number(b.ordem));
+
+  selecionados = itens.map(itemServico => {
+    return catalogo.find(item =>
+      item.tipo === itemServico.tipo &&
+      String(item.id).toLowerCase() === String(itemServico.item_id).toLowerCase()
+    );
+  }).filter(Boolean);
+
+  renderCatalogo();
+  renderSelecionados();
+
+  document.getElementById("resultado").textContent =
+    "Editando " + servico.id + ". Faça as alterações e salve.";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function converterParaInputDate(data) {
+  if (!data) return "";
+
+  const partes = String(data).split("/");
+  if (partes.length === 3) {
+    return `${partes[2]}-${partes[1].padStart(2, "0")}-${partes[0].padStart(2, "0")}`;
+  }
+
+  return String(data);
 }
 
 function renderCatalogo() {
@@ -453,7 +644,7 @@ function limparSelecao() {
   renderCatalogo();
   renderSelecionados();
   document.getElementById("resultado").textContent =
-    "Clique em GERAR ESTRUTURA.";
+    "Pronto para criar ou editar um serviço.";
 }
 
 async function salvarServico() {
@@ -474,12 +665,13 @@ async function salvarServico() {
   }
 
   const payload = {
+    acao: servicoEditando ? "atualizar" : "criar",
     servico: {
       id: id,
       cliente: cliente,
       descricao: descricao,
       data: formatarData(data),
-      status: "programado"
+      status: servicoEditando ? (servicoEditando.status || "programado") : "programado"
     },
     itens: selecionados.map((item, index) => ({
       servico_id: id,
@@ -527,12 +719,22 @@ Itens: ${selecionados.length}
 
 O serviço foi enviado para o Google Sheets.`;
 
-    alert("Serviço salvo com sucesso!");
+    alert(servicoEditando ? "Serviço atualizado com sucesso!" : "Serviço salvo com sucesso!");
 
-    // Prepara o próximo ID sem apagar os dados atuais da tela.
-    const numeroAtual = Number(id.replace(/\D/g, "")) || 0;
-    document.getElementById("servico-id").value =
-      "S" + String(numeroAtual + 1).padStart(3, "0");
+    servicoEditando = null;
+
+    // Recarrega os dados reais da API para atualizar a lista de serviços.
+    await carregarAPI();
+
+    // Prepara um novo serviço.
+    document.getElementById("cliente").value = "";
+    document.getElementById("descricao").value = "";
+    document.getElementById("data").value = "";
+    selecionados = [];
+    document.getElementById("servico-id").value = proximoId();
+
+    renderCatalogo();
+    renderSelecionados();
 
   } catch (erro) {
     resultado.textContent =
@@ -562,6 +764,7 @@ function escapeHTML(valor) {
 }
 
 document.getElementById("busca").addEventListener("input", renderCatalogo);
+document.getElementById("busca-servico").addEventListener("input", renderServicos);
 document.getElementById("filtro-tipo").addEventListener("change", renderCatalogo);
 
 carregarAPI();
