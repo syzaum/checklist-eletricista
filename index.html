@@ -581,26 +581,8 @@ async function carregarServicoDaAPI() {
     selecionarServico(0, dados);
 
     if (servicosDisponiveis.length > 1) {
-
       botaoOutros.style.display = "block";
-
-      servicosDisponiveis.forEach(function(item, indice) {
-
-        const opcao = document.createElement("button");
-        opcao.className = "servico-opcao";
-
-        opcao.innerHTML = `
-          <strong>${item.cliente || "Serviço sem nome"}</strong>
-          <span>${item.descricao || ""}</span>
-        `;
-
-        opcao.onclick = function() {
-          selecionarServico(indice, dados);
-          alternarListaServicos();
-        };
-
-        lista.appendChild(opcao);
-      });
+      renderListaOutrosServicos(dados, 0);
     }
 
   } catch (erro) {
@@ -686,6 +668,41 @@ function selecionarServico(indice, dados) {
 
   indiceAtual = 0;
   localStorage.removeItem("checklistProgresso");
+
+  // Atualiza a lista para mostrar somente os OUTROS serviços,
+  // nunca repetindo o serviço que está em destaque.
+  if (servicosDisponiveis.length > 1) {
+    renderListaOutrosServicos(dados, indice);
+  }
+}
+
+function renderListaOutrosServicos(dados, indiceSelecionado) {
+
+  const lista = document.getElementById("lista-servicos");
+  lista.innerHTML = "";
+
+  servicosDisponiveis.forEach(function(item, indice) {
+
+    if (indice === indiceSelecionado) {
+      return;
+    }
+
+    const opcao = document.createElement("button");
+    opcao.className = "servico-opcao";
+
+    opcao.innerHTML = `
+      <strong>${item.cliente || "Serviço sem nome"}</strong>
+      <span>${item.descricao || ""}</span>
+    `;
+
+    opcao.onclick = function() {
+      selecionarServico(indice, dados);
+      document.getElementById("lista-servicos").classList.remove("ativa");
+      document.getElementById("botao-outros").textContent = "OUTROS SERVIÇOS";
+    };
+
+    lista.appendChild(opcao);
+  });
 }
 
 function alternarListaServicos() {
