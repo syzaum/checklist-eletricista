@@ -722,10 +722,35 @@ async function carregarServicoDaAPI() {
         .textContent =
         item.tipo;
 
-      document
-        .getElementById("imagem-item")
-        .textContent =
-        item.imagem;
+      const caixaImagem =
+  document.getElementById("imagem-item");
+
+caixaImagem.innerHTML = "";
+
+if (
+  item.imagem &&
+  item.imagem.startsWith("http")
+) {
+
+  const img =
+    document.createElement("img");
+
+  img.src = item.imagem;
+  img.alt = item.nome;
+
+  img.style.maxWidth = "100%";
+  img.style.maxHeight = "100%";
+  img.style.objectFit = "contain";
+  img.style.borderRadius = "20px";
+
+  caixaImagem.appendChild(img);
+
+} else {
+
+  caixaImagem.textContent =
+    item.imagem || "📦";
+
+}
 
       document
         .getElementById("nome-item")
