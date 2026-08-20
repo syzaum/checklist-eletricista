@@ -85,6 +85,77 @@
 .status-programado { color: #d6b45a; }
 .status-andamento { color: #6ea8ff; }
 .status-concluido { color: #72c48b; }
+    .ia-box {
+      background: #161616;
+      border: 1px solid #3a3a3a;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .ia-box textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      border: 1px solid #3a3a3a;
+      border-radius: 12px;
+      background: #111;
+      color: #fff;
+      padding: 13px;
+      font: inherit;
+      line-height: 1.45;
+      outline: none;
+      margin: 10px 0;
+    }
+
+    .ia-box textarea:focus { border-color: #777; }
+
+    .ia-result {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .ia-group {
+      background: #111;
+      border: 1px solid #303030;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .ia-group h3 {
+      font-size: 14px;
+      margin-bottom: 9px;
+    }
+
+    .ia-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 0;
+      border-bottom: 1px solid #242424;
+    }
+
+    .ia-item:last-child { border-bottom: 0; }
+
+    .ia-item input {
+      width: 18px;
+      min-height: 18px;
+      flex: 0 0 18px;
+    }
+
+    .ia-suggestion {
+      color: #d6b45a;
+      padding: 6px 0;
+    }
+
+    .ia-note {
+      color: #999;
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 8px;
+    }
+
 
     .layout {
       display: grid;
@@ -225,6 +296,25 @@
   <h1>Gerenciador de Serviços</h1>
   <p class="sub">Monte os checklists pelo PC. Monte o checklist pelo PC e salve o serviço diretamente no Google Sheets.</p>
 
+  <div class="ia-box">
+    <div class="section-title">
+      <h2>🤖 Montar com IA</h2>
+      <span class="contador">IA sugere · você decide</span>
+    </div>
+
+    <div class="campo">
+      <label>Descreva o serviço</label>
+      <textarea id="descricao-ia" placeholder="Ex.: Vou fixar alguns canos na parede. Vou usar cantoneiras e abraçadeiras ou fita de nylon, bucha 8 mm e parafuso 8 mm. Vou furar a parede com furadeira elétrica ou a bateria."></textarea>
+    </div>
+
+    <div class="toolbar" style="margin-top:10px">
+      <button class="btn-primary" onclick="sugerirComIA()">🤖 SUGERIR ITENS</button>
+      <button class="btn-secondary" onclick="limparResultadoIA()">LIMPAR SUGESTÃO</button>
+    </div>
+
+    <div id="resultado-ia" class="ia-result"></div>
+  </div>
+
   <div class="card">
     <div class="grid-form">
       <div class="campo">
@@ -342,6 +432,208 @@ function proximoId() {
 
   return "S" + String(maior + 1).padStart(3, "0");
 }
+
+
+async function sugerirComIA() {
+
+  const descricao = document.getElementById("descricao-ia").value.trim();
+  const resultado = document.getElementById("resultado-ia");
+
+  if (!descricao) {
+    alert("Descreva o serviço primeiro.");
+    return;
+  }
+
+  resultado.innerHTML =
+    '<div class="ia-group">🤖 Analisando o serviço e comparando com seu catálogo...</div>';
+
+  try {
+
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        acao: "sugerirIA",
+        descricao: descricao
+      })
+    });
+
+    const texto = await resposta.text();
+    let retorno;
+
+    try {
+      retorno = JSON.parse(texto);
+    } catch (e) {
+      throw new Error("A API não retornou um JSON válido.");
+    }
+
+    if (!retorno.sucesso) {
+      throw new Error(
+        retorno.erro || "Não foi possível obter a sugestão da IA."
+      );
+    }
+
+    renderResultadoIA(retorno);
+
+  } catch (erro) {
+
+    resultado.innerHTML =
+      '<div class="ia-group">❌ Erro ao consultar a IA.<br><br>' +
+      escapeHTML(erro.message) + '</div>';
+
+  }
+}
+
+
+function renderResultadoIA(retorno) {
+
+  const resultado = document.getElementById("resultado-ia");
+
+  const encontrados = [
+    ...(retorno.ferramentas || []),
+    ...(retorno.materiais || [])
+  ];
+
+  const sugestoes = retorno.sugestoes || [];
+  const observacoes = retorno.observacoes || [];
+
+  let html = "";
+
+  html += '<div class="ia-group">';
+  html += '<h3>🟢 Encontrados no seu catálogo</h3>';
+
+  if (!encontrados.length) {
+
+    html += '<div class="ia-note">A IA não encontrou itens do seu catálogo para este serviço.</div>';
+
+  } else {
+
+    encontrados.forEach(item => {
+
+      const tipo = item.tipo === "ferramenta"
+        ? "Ferramenta"
+        : "Material";
+
+      const id = String(item.id);
+
+      const jaSelecionado = selecionados.some(
+        selecionado =>
+          selecionado.tipo === item.tipo &&
+          String(selecionado.id) === id
+      );
+
+      html += `
+        <label class="ia-item">
+          <input
+            type="checkbox"
+            class="ia-check"
+            data-tipo="${escapeHTML(item.tipo)}"
+            data-id="${escapeHTML(id)}"
+            ${jaSelecionado ? "checked" : ""}
+          >
+          <span>
+            <strong>${escapeHTML(item.nome)}</strong>
+            <span class="item-meta">${tipo} · ${escapeHTML(id)}</span>
+          </span>
+        </label>
+      `;
+    });
+
+    html += `
+      <div class="toolbar" style="margin-top:10px">
+        <button class="btn-primary" onclick="adicionarSugestoesIA()">
+          ADICIONAR SELECIONADOS AO CHECKLIST
+        </button>
+      </div>
+    `;
+  }
+
+  html += '</div>';
+
+  html += '<div class="ia-group">';
+  html += '<h3>🟡 Sugestões que não estão no catálogo</h3>';
+
+  if (!sugestoes.length) {
+
+    html += '<div class="ia-note">Nenhuma sugestão adicional identificada.</div>';
+
+  } else {
+
+    sugestoes.forEach(item => {
+      html += `
+        <div class="ia-suggestion">
+          💡 ${escapeHTML(item.nome || "")}
+          ${item.motivo ? `<div class="ia-note">${escapeHTML(item.motivo)}</div>` : ""}
+        </div>
+      `;
+    });
+  }
+
+  html += '</div>';
+
+  if (observacoes.length) {
+
+    html += '<div class="ia-group">';
+    html += '<h3>⚠️ Observações</h3>';
+
+    observacoes.forEach(item => {
+      html += `<div class="ia-note">• ${escapeHTML(item)}</div>`;
+    });
+
+    html += '</div>';
+  }
+
+  resultado.innerHTML = html;
+}
+
+
+function adicionarSugestoesIA() {
+
+  const checks = document.querySelectorAll(".ia-check:checked");
+
+  let adicionados = 0;
+
+  checks.forEach(check => {
+
+    const tipo = check.dataset.tipo;
+    const id = check.dataset.id;
+
+    const item = catalogo.find(
+      item =>
+        item.tipo === tipo &&
+        String(item.id) === String(id)
+    );
+
+    if (!item) return;
+
+    const existe = selecionados.some(
+      selecionado =>
+        selecionado.tipo === tipo &&
+        String(selecionado.id) === String(id)
+    );
+
+    if (!existe) {
+      selecionados.push(item);
+      adicionados++;
+    }
+
+  });
+
+  renderCatalogo();
+  renderSelecionados();
+
+  document.getElementById("resultado").textContent =
+    `🤖 ${adicionados} item(ns) adicionados pela sugestão da IA.`;
+
+}
+
+
+function limparResultadoIA() {
+  document.getElementById("resultado-ia").innerHTML = "";
+}
+
 
 async function carregarAPI() {
   const status = document.getElementById("contador-catalogo");
