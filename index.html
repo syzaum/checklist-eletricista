@@ -130,6 +130,48 @@
     .botao-iniciar:active {
       transform: scale(0.98);
     }
+    .outros-servicos {
+      width: 100%;
+      min-height: 58px;
+      margin-top: 12px;
+      border-radius: 18px;
+      background: #1b1b1b;
+      color: #ffffff;
+      border: 1px solid #303030;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .lista-servicos {
+      display: none;
+      width: 100%;
+      margin-top: 14px;
+      gap: 10px;
+      flex-direction: column;
+    }
+
+    .lista-servicos.ativa { display: flex; }
+
+    .servico-opcao {
+      width: 100%;
+      padding: 18px;
+      border-radius: 18px;
+      background: #1b1b1b;
+      color: #fff;
+      border: 1px solid #303030;
+      text-align: left;
+    }
+
+    .servico-opcao strong { display: block; font-size: 21px; }
+    .servico-opcao span { display: block; color: #aaa; margin-top: 6px; font-size: 14px; }
+
+    .sem-servico {
+      text-align: center;
+      color: #aaa;
+      line-height: 1.5;
+      padding: 30px 10px;
+    }
+
 
     /* =========================
        TELA CHECKLIST
@@ -316,33 +358,38 @@
 
     </div>
 
-    <div class="servico-card">
+    <div id="servico-card" class="servico-card">
 
-      <div class="servico-label">
-        Serviço de amanhã
+      <div id="servico-label" class="servico-label">
+        Serviço disponível
       </div>
 
-      <div class="servico-nome">
-        Casa do João
+      <div id="servico-nome" class="servico-nome">
+        Carregando...
       </div>
 
-      <div class="servico-descricao">
-        Instalação elétrica
+      <div id="servico-descricao" class="servico-descricao">
+        Aguarde enquanto verificamos os serviços.
       </div>
 
       <div class="quantidade-itens">
-        <strong id="quantidade-inicial">8</strong>
+        <strong id="quantidade-inicial">0</strong>
         itens para levar
       </div>
 
     </div>
 
-    <button
-      class="botao-iniciar"
-      onclick="iniciarChecklist()"
-    >
+    <button id="botao-iniciar" class="botao-iniciar"
+      onclick="iniciarChecklist()" disabled>
       INICIAR CHECKLIST
     </button>
+
+    <button id="botao-outros" class="outros-servicos"
+      onclick="alternarListaServicos()" style="display:none">
+      OUTROS SERVIÇOS
+    </button>
+
+    <div id="lista-servicos" class="lista-servicos"></div>
 
   </section>
 
@@ -479,10 +526,13 @@ async function testarAPI() {
   }
 }
     const servico = {
-  cliente: "",
-  descricao: "",
-  itens: []
-};
+      id: "",
+      cliente: "",
+      descricao: "",
+      itens: []
+    };
+
+    let servicosDisponiveis = [];
 
 
     /*
@@ -497,127 +547,156 @@ async function carregarServicoDaAPI() {
   try {
 
     const resposta = await fetch(API_URL);
-
     const dados = await resposta.json();
 
-    if (!dados.servicos || !dados.servicos.length) {
-      console.error("Nenhum serviço encontrado.");
+    servicosDisponiveis = (dados.servicos || []).filter(function(item) {
+      const status = String(item.status || "").trim().toLowerCase();
+      return status === "programado" || status === "em andamento";
+    });
+
+    const botaoIniciar = document.getElementById("botao-iniciar");
+    const botaoOutros = document.getElementById("botao-outros");
+    const card = document.getElementById("servico-card");
+    const lista = document.getElementById("lista-servicos");
+
+    lista.innerHTML = "";
+    botaoOutros.style.display = "none";
+    lista.classList.remove("ativa");
+
+    if (!servicosDisponiveis.length) {
+
+      card.innerHTML = `
+        <div class="sem-servico">
+          <div style="font-size:48px;margin-bottom:15px">✅</div>
+          <strong style="font-size:21px;color:#fff">Nenhum serviço disponível</strong>
+          <div style="margin-top:8px">Não há nenhuma obra aberta no momento.</div>
+        </div>
+      `;
+
+      botaoIniciar.disabled = true;
+      botaoIniciar.style.opacity = "0.45";
       return;
     }
 
-    const servicoAPI = dados.servicos[0];
+    selecionarServico(0, dados);
 
-    servico.cliente = servicoAPI.cliente;
-    servico.descricao = servicoAPI.descricao;
+    if (servicosDisponiveis.length > 1) {
 
+      botaoOutros.style.display = "block";
 
-    // =========================
-    // ENCONTRAR OS ITENS DO SERVIÇO
-    // =========================
+      servicosDisponiveis.forEach(function(item, indice) {
 
-    const itensDoServico = dados.itensServico
-      .filter(function(item) {
+        const opcao = document.createElement("button");
+        opcao.className = "servico-opcao";
 
-        return String(item.servico_id).toLowerCase() ===
-               String(servicoAPI.id).toLowerCase();
+        opcao.innerHTML = `
+          <strong>${item.cliente || "Serviço sem nome"}</strong>
+          <span>${item.descricao || ""}</span>
+        `;
 
-      })
-      .sort(function(a, b) {
+        opcao.onclick = function() {
+          selecionarServico(indice, dados);
+          alternarListaServicos();
+        };
 
-        return Number(a.ordem) - Number(b.ordem);
-
+        lista.appendChild(opcao);
       });
-
-
-    // =========================
-    // MONTAR O CHECKLIST
-    // =========================
-
-    servico.itens = itensDoServico.map(function(itemServico) {
-
-      let itemEncontrado = null;
-
-
-      if (itemServico.tipo === "ferramenta") {
-
-        itemEncontrado = dados.ferramentas.find(function(ferramenta) {
-
-          return ferramenta.id === itemServico.item_id;
-
-        });
-
-      }
-
-
-      if (itemServico.tipo === "material") {
-
-        itemEncontrado = dados.materiais.find(function(material) {
-
-          return material.id === itemServico.item_id;
-
-        });
-
-      }
-
-
-      if (!itemEncontrado) {
-        return null;
-      }
-
-
-      return {
-
-        nome: itemEncontrado.nome,
-
-        tipo:
-          itemServico.tipo === "ferramenta"
-            ? "Ferramenta"
-            : "Material",
-
-        imagem:
-          itemEncontrado.imagem || "📦"
-
-      };
-
-    }).filter(function(item) {
-
-      return item !== null;
-
-    });
-
-
-    // =========================
-    // ATUALIZAR TELA INICIAL
-    // =========================
-
-    document
-      .querySelector(".servico-nome")
-      .textContent = servico.cliente;
-
-    document
-      .querySelector(".servico-descricao")
-      .textContent = servico.descricao;
-
-    document
-      .getElementById("quantidade-inicial")
-      .textContent = servico.itens.length;
-
-
-    console.log(
-      "Serviço carregado:",
-      servico
-    );
-
+    }
 
   } catch (erro) {
 
-    console.error(
-      "Erro ao carregar serviço:",
-      erro
-    );
+    console.error("Erro ao carregar serviço:", erro);
 
+    document.getElementById("servico-card").innerHTML = `
+      <div class="sem-servico">
+        <strong style="font-size:21px;color:#fff">Não foi possível carregar os serviços.</strong>
+        <div style="margin-top:8px">Verifique a conexão e tente novamente.</div>
+      </div>
+    `;
   }
+}
 
+function selecionarServico(indice, dados) {
+
+  const servicoAPI = servicosDisponiveis[indice];
+  if (!servicoAPI) return;
+
+  servico.id = servicoAPI.id;
+  servico.cliente = servicoAPI.cliente || "";
+  servico.descricao = servicoAPI.descricao || "";
+
+  const itensDoServico = (dados.itensServico || [])
+    .filter(function(item) {
+      return String(item.servico_id).toLowerCase() ===
+             String(servicoAPI.id).toLowerCase();
+    })
+    .sort(function(a, b) {
+      return Number(a.ordem) - Number(b.ordem);
+    });
+
+  servico.itens = itensDoServico.map(function(itemServico) {
+
+    let itemEncontrado = null;
+
+    if (String(itemServico.tipo).toLowerCase() === "ferramenta") {
+      itemEncontrado = (dados.ferramentas || []).find(function(ferramenta) {
+        return String(ferramenta.id).toLowerCase() ===
+               String(itemServico.item_id).toLowerCase();
+      });
+    }
+
+    if (String(itemServico.tipo).toLowerCase() === "material") {
+      itemEncontrado = (dados.materiais || []).find(function(material) {
+        return String(material.id).toLowerCase() ===
+               String(itemServico.item_id).toLowerCase();
+      });
+    }
+
+    if (!itemEncontrado) return null;
+
+    return {
+      nome: itemEncontrado.nome,
+      tipo: String(itemServico.tipo).toLowerCase() === "ferramenta"
+        ? "Ferramenta"
+        : "Material",
+      imagem: itemEncontrado.imagem || "📦"
+    };
+
+  }).filter(function(item) {
+    return item !== null;
+  });
+
+  document.getElementById("servico-label").textContent =
+    String(servicoAPI.status).toLowerCase() === "em andamento"
+      ? "Serviço em andamento"
+      : "Serviço disponível";
+
+  document.getElementById("servico-nome").textContent =
+    servico.cliente || "Serviço sem nome";
+
+  document.getElementById("servico-descricao").textContent =
+    servico.descricao || "";
+
+  document.getElementById("quantidade-inicial").textContent =
+    servico.itens.length;
+
+  const botaoIniciar = document.getElementById("botao-iniciar");
+  botaoIniciar.disabled = servico.itens.length === 0;
+  botaoIniciar.style.opacity = servico.itens.length === 0 ? "0.45" : "1";
+
+  indiceAtual = 0;
+  localStorage.removeItem("checklistProgresso");
+}
+
+function alternarListaServicos() {
+
+  const lista = document.getElementById("lista-servicos");
+  const botao = document.getElementById("botao-outros");
+  const aberta = lista.classList.toggle("ativa");
+
+  botao.textContent = aberta
+    ? "FECHAR OUTROS SERVIÇOS"
+    : "OUTROS SERVIÇOS";
 }
 
     /*
@@ -625,17 +704,8 @@ async function carregarServicoDaAPI() {
      */
 
     function carregarProgresso() {
-
-      const salvo = localStorage.getItem(
-        "checklistProgresso"
-      );
-
-      if (salvo !== null) {
-
-        indiceAtual = Number(salvo);
-
-      }
-
+      indiceAtual = 0;
+      localStorage.removeItem("checklistProgresso");
     }
 
 
@@ -644,12 +714,7 @@ async function carregarServicoDaAPI() {
      */
 
     function salvarProgresso() {
-
-      localStorage.setItem(
-        "checklistProgresso",
-        indiceAtual
-      );
-
+      // Checklist diário: não persiste a posição entre aberturas.
     }
 
 
@@ -680,22 +745,14 @@ async function carregarServicoDaAPI() {
 
     function iniciarChecklist() {
 
-      carregarProgresso();
-
-      if (
-        indiceAtual >= servico.itens.length
-      ) {
-
-        indiceAtual = 0;
-
-        salvarProgresso();
-
+      if (!servico.itens.length) {
+        alert("Este serviço não possui itens cadastrados.");
+        return;
       }
 
+      indiceAtual = 0;
       atualizarItem();
-
       mostrarTela("tela-checklist");
-
     }
 
 
@@ -790,8 +847,6 @@ caixaImagem.appendChild(img);
 
       indiceAtual++;
 
-      salvarProgresso();
-
       if (
         indiceAtual >=
         servico.itens.length
@@ -855,7 +910,7 @@ caixaImagem.appendChild(img);
      */
 
    
-    carregarProgresso();
+    indiceAtual = 0;
     carregarServicoDaAPI();
     testarAPI();
 
