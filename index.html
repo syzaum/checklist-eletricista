@@ -518,7 +518,8 @@ async function carregarServicoDaAPI() {
     const itensDoServico = dados.itensServico
       .filter(function(item) {
 
-        return item.servico_id === servicoAPI.id;
+        return String(item.servico_id).toLowerCase() ===
+               String(servicoAPI.id).toLowerCase();
 
       })
       .sort(function(a, b) {
@@ -851,6 +852,7 @@ if (
 
    
     carregarProgresso();
+    carregarServicoDaAPI();
     testarAPI();
 
   </script>
