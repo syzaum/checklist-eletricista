@@ -428,6 +428,7 @@ function renderServicos() {
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <button class="btn-secondary" onclick="editarServico('${String(servico.id).replace(/'/g, "\\'")}')">EDITAR</button>
+          <button class="btn-secondary" onclick="duplicarServico('${String(servico.id).replace(/'/g, "\\'")}')">DUPLICAR</button>
           ${
             String(servico.status).toLowerCase() === "programado"
               ? `<button class="btn-success" onclick="alterarStatusServico('${String(servico.id).replace(/'/g, "\\'")}', 'iniciar')">INICIAR</button>`
@@ -446,6 +447,123 @@ function renderServicos() {
 }
 
 
+
+
+async function duplicarServico(id) {
+
+  const servico = (dados.servicos || []).find(item =>
+    String(item.id).toLowerCase() === String(id).toLowerCase()
+  );
+
+  if (!servico) {
+    alert("Serviço não encontrado.");
+    return;
+  }
+
+  const novoId = proximoId();
+
+  const cliente = prompt(
+    "Cliente do novo serviço:",
+    servico.cliente || ""
+  );
+
+  if (cliente === null) return;
+
+  const descricao = prompt(
+    "Descrição do novo serviço:",
+    servico.descricao || ""
+  );
+
+  if (descricao === null) return;
+
+  const data = prompt(
+    "Data do novo serviço (DD/MM/AAAA):",
+    servico.data || ""
+  );
+
+  if (data === null) return;
+
+  const itens = (dados.itensServico || [])
+    .filter(item =>
+      String(item.servico_id).toLowerCase() ===
+      String(servico.id).toLowerCase()
+    )
+    .sort((a, b) => Number(a.ordem) - Number(b.ordem));
+
+  if (!confirm(
+    `Criar ${novoId} copiando ${servico.id}?\n\n` +
+    `Cliente: ${cliente}\n` +
+    `Descrição: ${descricao}\n` +
+    `Data: ${data}\n` +
+    `Itens copiados: ${itens.length}\n\n` +
+    "O novo serviço será criado como PROGRAMADO."
+  )) {
+    return;
+  }
+
+  const resultado = document.getElementById("resultado");
+  resultado.textContent = "Duplicando serviço...";
+
+  try {
+
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        acao: "duplicar",
+        servico_original_id: servico.id,
+        servico: {
+          id: novoId,
+          cliente: cliente,
+          descricao: descricao,
+          data: data,
+          status: "programado"
+        }
+      })
+    });
+
+    const retorno = await resposta.json();
+
+    if (!retorno.sucesso) {
+      throw new Error(
+        retorno.erro || "Não foi possível duplicar o serviço."
+      );
+    }
+
+    alert("Serviço duplicado com sucesso.");
+
+    await carregarAPI();
+
+    document.getElementById("servico-id").value = novoId;
+    document.getElementById("cliente").value = cliente;
+    document.getElementById("descricao").value = descricao;
+    document.getElementById("data").value = converterParaInputDate(data);
+
+    selecionados = itens.map(itemServico => {
+      return catalogo.find(item =>
+        item.tipo === itemServico.tipo &&
+        String(item.id).toLowerCase() ===
+        String(itemServico.item_id).toLowerCase()
+      );
+    }).filter(Boolean);
+
+    renderCatalogo();
+    renderSelecionados();
+
+    resultado.textContent =
+      `✅ ${novoId} criado a partir de ${servico.id}.`;
+
+  } catch (erro) {
+
+    resultado.textContent =
+      "❌ Erro ao duplicar\n\n" + erro.message;
+
+    alert("Erro ao duplicar: " + erro.message);
+
+  }
+}
 
 async function alterarStatusServico(id, acao) {
 
