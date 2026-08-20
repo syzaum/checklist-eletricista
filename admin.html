@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111111">
+  <title>Admin — Checklist de Obra</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 24px;
+    }
+
+    .container {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+    }
+
+    h1 { font-size: 28px; margin-bottom: 6px; }
+    .sub { color: #999; margin-bottom: 24px; }
+
+    .card {
+      background: #1b1b1b;
+      border: 1px solid #303030;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .grid-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .campo label {
+      display: block;
+      color: #999;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 7px;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #3a3a3a;
+      border-radius: 11px;
+      background: #111;
+      color: #fff;
+      padding: 0 13px;
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus, select:focus { border-color: #777; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 11px;
+      padding: 0 16px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-primary { background: #fff; color: #111; }
+    .btn-secondary { background: #292929; color: #fff; }
+    .btn-danger { background: #4a2020; color: #fff; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section-title h2 { font-size: 19px; }
+
+    .contador {
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    .search {
+      margin-bottom: 12px;
+    }
+
+    .lista {
+      max-height: 520px;
+      overflow-y: auto;
+      border: 1px solid #303030;
+      border-radius: 13px;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid #292929;
+      cursor: pointer;
+    }
+
+    .item:last-child { border-bottom: 0; }
+
+    .item:hover { background: #202020; }
+
+    .item input[type="checkbox"] {
+      width: 20px;
+      min-height: 20px;
+      flex: 0 0 20px;
+      accent-color: #fff;
+    }
+
+    .item-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .item-name {
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .item-meta {
+      color: #888;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .selecionados {
+      min-height: 220px;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .selecionado {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #111;
+      border: 1px solid #303030;
+      border-radius: 11px;
+    }
+
+    .ordem {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #292929;
+      font-weight: 800;
+    }
+
+    .tipo {
+      color: #888;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .vazio {
+      color: #777;
+      text-align: center;
+      padding: 35px 15px;
+    }
+
+    .resultado {
+      white-space: pre-wrap;
+      background: #0c0c0c;
+      border: 1px solid #303030;
+      border-radius: 12px;
+      padding: 14px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      overflow: auto;
+      max-height: 300px;
+    }
+
+    .status {
+      margin-bottom: 14px;
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .grid-form, .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>Gerenciador de Serviços</h1>
+  <p class="sub">Monte os checklists pelo PC. Esta versão é apenas para teste e não grava no Google Sheets.</p>
+
+  <div class="card">
+    <div class="grid-form">
+      <div class="campo">
+        <label>ID do serviço</label>
+        <input id="servico-id" type="text" readonly>
+      </div>
+
+      <div class="campo">
+        <label>Cliente</label>
+        <input id="cliente" type="text" placeholder="Ex.: Casa do João">
+      </div>
+
+      <div class="campo">
+        <label>Descrição</label>
+        <input id="descricao" type="text" placeholder="Ex.: Instalação elétrica">
+      </div>
+
+      <div class="campo">
+        <label>Data</label>
+        <input id="data" type="date">
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Catálogo</h2>
+        <span class="contador" id="contador-catalogo">Carregando...</span>
+      </div>
+
+      <div class="toolbar">
+        <select id="filtro-tipo">
+          <option value="todos">Todos</option>
+          <option value="ferramenta">Ferramentas</option>
+          <option value="material">Materiais</option>
+        </select>
+
+        <input class="search" id="busca" type="search" placeholder="Pesquisar item...">
+      </div>
+
+      <div id="lista-catalogo" class="lista">
+        <div class="vazio">Carregando catálogo...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Itens selecionados</h2>
+        <span class="contador" id="contador-selecionados">0 itens</span>
+      </div>
+
+      <div id="lista-selecionados" class="selecionados">
+        <div class="vazio">Nenhum item selecionado.</div>
+      </div>
+
+      <div class="toolbar" style="margin-top:14px">
+        <button class="btn-secondary" onclick="limparSelecao()">LIMPAR ITENS</button>
+        <button class="btn-primary" onclick="gerarEstrutura()">GERAR ESTRUTURA</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      <h2>Estrutura gerada</h2>
+      <span class="contador">somente visualização</span>
+    </div>
+
+    <div id="resultado" class="resultado">Clique em GERAR ESTRUTURA.</div>
+  </div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzLBkyuSK8ILxNvPSfMJ-mvb5451Ef6iXPlEWQNsoQ55Jfq12EJtN9CmRv1bUQDtWn2/exec";
+
+let dados = {
+  servicos: [],
+  ferramentas: [],
+  materiais: [],
+  itensServico: []
+};
+
+let catalogo = [];
+let selecionados = [];
+
+function proximoId() {
+  let maior = 0;
+
+  dados.servicos.forEach(servico => {
+    const match = String(servico.id || "").match(/^s(\d+)$/i);
+    if (match) maior = Math.max(maior, Number(match[1]));
+  });
+
+  return "S" + String(maior + 1).padStart(3, "0");
+}
+
+async function carregarAPI() {
+  const status = document.getElementById("contador-catalogo");
+
+  try {
+    const resposta = await fetch(API_URL);
+
+    if (!resposta.ok) {
+      throw new Error("API HTTP " + resposta.status);
+    }
+
+    dados = await resposta.json();
+
+    catalogo = [
+      ...(dados.ferramentas || []).map(item => ({
+        ...item,
+        tipo: "ferramenta"
+      })),
+      ...(dados.materiais || []).map(item => ({
+        ...item,
+        tipo: "material"
+      }))
+    ];
+
+    document.getElementById("servico-id").value = proximoId();
+    status.textContent = catalogo.length + " itens";
+
+    renderCatalogo();
+
+  } catch (erro) {
+    status.textContent = "Erro";
+    document.getElementById("lista-catalogo").innerHTML =
+      '<div class="vazio">Não foi possível carregar a API.<br>' +
+      erro.message + '</div>';
+  }
+}
+
+function renderCatalogo() {
+  const lista = document.getElementById("lista-catalogo");
+  const busca = document.getElementById("busca").value.trim().toLowerCase();
+  const filtro = document.getElementById("filtro-tipo").value;
+
+  const filtrados = catalogo.filter(item => {
+    const bateTipo = filtro === "todos" || item.tipo === filtro;
+    const texto = String(item.nome || "").toLowerCase();
+    const id = String(item.id || "").toLowerCase();
+    const bateBusca = !busca || texto.includes(busca) || id.includes(busca);
+
+    return bateTipo && bateBusca;
+  });
+
+  if (!filtrados.length) {
+    lista.innerHTML = '<div class="vazio">Nenhum item encontrado.</div>';
+    return;
+  }
+
+  lista.innerHTML = filtrados.map(item => {
+    const marcado = selecionados.some(
+      selecionado => selecionado.tipo === item.tipo &&
+                     selecionado.id === item.id
+    );
+
+    return `
+      <label class="item">
+        <input
+          type="checkbox"
+          ${marcado ? "checked" : ""}
+          onchange="alternarItem('${item.tipo}', '${String(item.id).replace(/'/g, "\\'")}')"
+        >
+        <div class="item-main">
+          <div class="item-name">${escapeHTML(item.nome || "Sem nome")}</div>
+          <div class="item-meta">${item.tipo === "ferramenta" ? "Ferramenta" : "Material"} · ${escapeHTML(item.id || "")}</div>
+        </div>
+      </label>
+    `;
+  }).join("");
+}
+
+function alternarItem(tipo, id) {
+  const index = selecionados.findIndex(
+    item => item.tipo === tipo && item.id === id
+  );
+
+  if (index >= 0) {
+    selecionados.splice(index, 1);
+  } else {
+    const item = catalogo.find(
+      item => item.tipo === tipo && item.id === id
+    );
+
+    if (item) selecionados.push(item);
+  }
+
+  renderCatalogo();
+  renderSelecionados();
+}
+
+function renderSelecionados() {
+  const lista = document.getElementById("lista-selecionados");
+  const contador = document.getElementById("contador-selecionados");
+
+  contador.textContent =
+    selecionados.length + (selecionados.length === 1 ? " item" : " itens");
+
+  if (!selecionados.length) {
+    lista.innerHTML =
+      '<div class="vazio">Nenhum item selecionado.</div>';
+    return;
+  }
+
+  lista.innerHTML = selecionados.map((item, index) => `
+    <div class="selecionado">
+      <div class="ordem">${index + 1}</div>
+      <div>
+        <div class="item-name">${escapeHTML(item.nome || "Sem nome")}</div>
+        <div class="tipo">${item.tipo === "ferramenta" ? "Ferramenta" : "Material"} · ${escapeHTML(item.id || "")}</div>
+      </div>
+      <button class="btn-danger" onclick="removerSelecionado(${index})">×</button>
+    </div>
+  `).join("");
+}
+
+function removerSelecionado(index) {
+  selecionados.splice(index, 1);
+  renderCatalogo();
+  renderSelecionados();
+}
+
+function limparSelecao() {
+  selecionados = [];
+  renderCatalogo();
+  renderSelecionados();
+  document.getElementById("resultado").textContent =
+    "Clique em GERAR ESTRUTURA.";
+}
+
+function gerarEstrutura() {
+  const id = document.getElementById("servico-id").value.trim();
+  const cliente = document.getElementById("cliente").value.trim();
+  const descricao = document.getElementById("descricao").value.trim();
+  const data = document.getElementById("data").value;
+
+  if (!cliente || !descricao || !data) {
+    alert("Preencha Cliente, Descrição e Data.");
+    return;
+  }
+
+  if (!selecionados.length) {
+    alert("Selecione pelo menos um item.");
+    return;
+  }
+
+  const servico = [
+    "id | cliente | descricao | data | status",
+    `${id} | ${cliente} | ${descricao} | ${formatarData(data)} | programado`
+  ].join("\n");
+
+  const itens = [
+    "servico_id | tipo | item_id | ordem",
+    ...selecionados.map((item, index) =>
+      `${id} | ${item.tipo} | ${item.id} | ${index + 1}`
+    )
+  ].join("\n");
+
+  document.getElementById("resultado").textContent =
+`SERVICOS
+
+${servico}
+
+ITENS_SERVICO
+
+${itens}`;
+}
+
+function formatarData(data) {
+  if (!data) return "";
+
+  const partes = data.split("-");
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+function escapeHTML(valor) {
+  return String(valor)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+document.getElementById("busca").addEventListener("input", renderCatalogo);
+document.getElementById("filtro-tipo").addEventListener("change", renderCatalogo);
+
+carregarAPI();
+</script>
+</body>
+</html>
